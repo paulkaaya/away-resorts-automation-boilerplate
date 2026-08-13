@@ -1,16 +1,15 @@
 import { FooterNav } from '@components/FooterNavigation';
 import { HeaderNav } from '@components/HeaderNavigation';
 import { BasePage } from '@pages/BasePage';
-import { LoginPage } from '@pages/LoginPage';
+import { HomePage } from '@pages/HomePage';
 import type { Browser, Page } from '@playwright/test';
 import { test as base, chromium } from '@playwright/test';
+import type { Components, Pages } from '@types';
 import { assertNoA11yViolations } from '@utils/accessibility';
-import { authFiles } from '@utils/auth';
 import { EnvironmentManager } from '@utils/environmentManager';
 import getPort from 'get-port';
 import { playAudit } from 'playwright-lighthouse';
 import lighthouseThresholds from '../lib/lighthouseThresholds';
-import type { Components, Pages } from '@types';
 
 /**
  * Runs global setup actions against a freshly-constructed page object, such as closing the cookie banner.
@@ -333,7 +332,7 @@ export const test = base.extend<
 
   //page types
   basePage: createPageFixture(BasePage),
-  loginPage: createPageFixture(LoginPage),
+  homePage: createPageFixture(HomePage),
   /* Add other page types here as needed, make sure to import them */
 
   //component types
@@ -343,18 +342,5 @@ export const test = base.extend<
   footerNavigation: createComponentFixture(page => new FooterNav(page)),
   /* Add other component fixtures here as needed, make sure to import them */
 });
-
-/**
- * Role-scoped tests. Import these instead of `test` to run against a stored,
- * authenticated session (created by tests/auth.setup.ts):
- *
- *   import { primaryUserTest, expect } from '@base';
- *
- * Equivalent to `test.use({ storageState: authFiles.primaryUser })` per file.
- * Add a role by adding an entry to `authFiles` and a setup test, then exporting
- * a matching fixture here.
- */
-export const primaryUserTest = test.extend({ storageState: authFiles.primaryUser });
-export const secondaryUserTest = test.extend({ storageState: authFiles.secondaryUser });
 
 export { expect } from '@playwright/test';

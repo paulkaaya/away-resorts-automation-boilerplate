@@ -1,9 +1,9 @@
 ##example usage of scheduled pipeline to run Playwright tests and generate report
-name: Playwright Test and Report - Weekday Nightly Regression - QA
+name: Playwright Test and Report - Weekday Nightly Regression - PPRD
 
 schedules:
   - cron: '00 18 * * 1-5' #runs in UTC at 18:00 (6pm) Monday to Friday
-    displayName: 'Weekday Nightly Regression - QA'
+    displayName: 'Weekday Nightly Regression - PPRD'
     branches:
       include:
         - main
@@ -18,7 +18,7 @@ pool:
 extends:
   template: ci-templates/playwrightTemplate.yml
   parameters:
-    environment: 'qa'
+    environment: 'pprd'
     runAll: 'false'
     args: ' '
     generateScreenshots: 'false'

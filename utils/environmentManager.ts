@@ -1,13 +1,15 @@
-import type { EnvConfig, ResolvedConfig } from '../types/envConfig';
 import { defaults } from '../config/defaults';
-import { devConfig } from '../config/dev';
+import { pprdConfig } from '../config/pprd';
+import { prodConfig } from '../config/prod';
+import type { EnvConfig, ResolvedConfig } from '../types/envConfig';
 
-export type Env = 'dev' | 'qa' | 'staging' | 'prod';
+export type Env = 'pprd' | 'prod';
 
-const KNOWN_ENVS: readonly Env[] = ['dev', 'qa', 'staging', 'prod'];
+const KNOWN_ENVS: readonly Env[] = ['pprd', 'prod'];
 
 const environments: Partial<Record<Env, EnvConfig>> = {
-  dev: devConfig,
+  pprd: pprdConfig,
+  prod: prodConfig,
 };
 
 export class EnvironmentManager {
@@ -15,7 +17,7 @@ export class EnvironmentManager {
   readonly config: ResolvedConfig;
 
   constructor() {
-    const requestedEnv = process.env.ENV || 'dev';
+    const requestedEnv = process.env.ENV || 'pprd';
 
     if (!KNOWN_ENVS.includes(requestedEnv as Env)) {
       throw new Error(`Unknown environment: ${requestedEnv}. Env value is ${process.env.ENV}`);
@@ -43,7 +45,7 @@ export class EnvironmentManager {
 
   /**
    * Gets the name of the currently active environment.
-   * @returns The current environment name (e.g. `dev`, `qa`, `staging`, `prod`).
+   * @returns The current environment name (e.g. `pprd`, `prod`).
    */
   getEnv(): Env {
     return this.currentEnv;

@@ -68,15 +68,6 @@ export default defineConfig({
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   outputDir: './.test-results/',
 
-  /*
-   * Projects. The `setup` project runs first and authenticates each role
-   * (tests/auth.setup.ts), then every browser project from config/projects.ts
-   * runs with `dependencies: ['setup']` so a session is ready. When auth is
-   * unconfigured the setup tests skip themselves, so dependents still run.
-   * Browser matrix lives in config/projects.ts — trim it there.
-   */
-  projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    ...projects.map(project => ({ ...project, dependencies: ['setup'] })),
-  ],
+  /* Browser matrix lives in config/projects.ts. */
+  projects,
 });

@@ -19,7 +19,7 @@ variables:
   - name: currentDate
     value: $[format('{0:yyyy}.{0:MM}.{0:dd}-{0:HH}.{0:mm}', pipeline.startTime)]
   - name: workingDir
-    value: 'tests/playwright'
+    value: '.'
   - name: dockerContainer
     value: 'ecmchow/node-playwright-pnpm:v1.61.1-node22-pnpm11-noble'
 
@@ -43,7 +43,7 @@ jobs:
             --instance "$TESTMO_URL" \
             --project-id "$TESTMO_ID" \
             --name "Playwright - ${{parameters.environment}} - $(currentDate) - Chromium Only" \
-            --source "frontend-playwright" \
+            --source "awayresorts-smoke-tests" \
             --results .test-reports/testmo.xml \
             -- pnpm exec playwright test --project Chrome "Mobile Chrome" ${{parameters.args}}
         env:
@@ -80,7 +80,7 @@ jobs:
           --instance "$TESTMO_URL" \
           --project-id "$TESTMO_ID" \
           --name "Playwright - ${{parameters.environment}} - $(currentDate) - All Browser Variants" \
-          --source "frontend-playwright" > testmo-run-id.txt
+          --source "awayresorts-smoke-tests" > testmo-run-id.txt
           ID=$(cat testmo-run-id.txt)
           echo "##vso[task.setvariable variable=testmo-run-id;isOutput=true]$ID"
         env:

@@ -1,11 +1,11 @@
 import { FooterNav } from '@components/FooterNavigation';
 import { HeaderNav } from '@components/HeaderNavigation';
 import { BasePage } from '@pages/BasePage';
-import { LoginPage } from '@pages/LoginPage';
+import { HomePage } from '@pages/HomePage';
 
 export type Pages = {
   basePage: BasePage;
-  loginPage: LoginPage;
+  homePage: HomePage;
 };
 
 export type Components = {

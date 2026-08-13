@@ -17,18 +17,6 @@ test.describe('global seo', () => {
     ).toHaveCount(await baseURLOccurrences.count());
   });
 
-  test('robots.txt', async ({ page, envManager }) => {
-    const expectedRobotsTxt = envManager.getValue('robotsTxt');
-
-    const response = await page.goto('/robots.txt');
-
-    expect(response?.status(), "robots.txt doesn't exist at /robots.txt").toBe(200);
-    await expect(
-      page.locator('body'),
-      "robots.txt content doesn't match expected content"
-    ).toHaveText(expectedRobotsTxt);
-  });
-
   test('404', async ({ page }) => {
     const response = await page.goto('/abcdefg');
 

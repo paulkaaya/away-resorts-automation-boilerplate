@@ -1,12 +1,12 @@
 {
-  "name": "playwright-boilerplate",
+  "name": "awayresorts-smoke-tests",
   "version": "1.0.0",
   "packageManager": "pnpm@11.10.0",
   "scripts": {
     "first:install": "pnpm install && pnpm run test:install && husky",
     "test": "playwright test",
-    "test:qa": "ENV=qa playwright test",
-    "test:staging": "ENV=staging playwright test",
+    "test:pprd": "ENV=pprd playwright test",
+    "test:prod": "ENV=prod playwright test",
     "test:update": "pnpm add -D @playwright/test@latest",
     "test:install": "playwright install",
     "lint": "eslint --cache .",
@@ -16,9 +16,9 @@
     "prepare": "husky"
   },
   "keywords": [],
-  "author": "",
+  "author": "Away Resorts QA",
   "license": "ISC",
-  "description": "",
+  "description": "Smoke test suite for Away Resorts websites",
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
     "@eslint/compat": "^2.1.0",

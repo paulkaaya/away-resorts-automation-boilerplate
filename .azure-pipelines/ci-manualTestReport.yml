@@ -4,10 +4,9 @@ parameters:
   - name: environment
     displayName: Environment to run tests on
     type: string
-    default: qa
+    default: pprd
     values:
-      - qa
-      - string
+      - pprd
       - prod
 
   - name: runAll

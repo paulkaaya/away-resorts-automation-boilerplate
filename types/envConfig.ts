@@ -8,19 +8,6 @@ export interface EnvConfig {
   robotsTxt?: string;
   searchUrl?: string;
   articleUrl?: string;
-
-  /*
-  Authentication (optional) — consumed by the auth scaffold:
-  objects/pages/LoginPage.ts, tests/auth.setup.ts and utils/auth.ts.
-  Credentials live here by default; the onboarding wizard can wire them to
-  process.env (.env) instead — see .env.example. Drop these keys entirely if
-  the project has no authenticated tests.
-  */
-  loginUrl?: string;
-  primaryUserEmail?: string;
-  primaryUserPassword?: string;
-  secondaryUserEmail?: string;
-  secondaryUserPassword?: string;
 }
 
 /*

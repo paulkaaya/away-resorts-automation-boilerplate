@@ -10,9 +10,4 @@ export const defaults: Required<Omit<EnvConfig, 'baseUrl'>> = {
   robotsTxt: '',
   searchUrl: '',
   articleUrl: '',
-  loginUrl: '',
-  primaryUserEmail: '',
-  primaryUserPassword: '',
-  secondaryUserEmail: '',
-  secondaryUserPassword: '',
 };
