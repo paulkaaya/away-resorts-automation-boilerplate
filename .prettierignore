@@ -1,0 +1,6 @@
+# Prettier already reads .gitignore by default (--ignore-path defaults to
+# [.gitignore, .prettierignore]), so build artifacts / generated files are
+# covered there. Only list paths git tracks (or doesn't ignore) that Prettier
+# should still skip.
+pnpm-lock.yaml
+screenshots/

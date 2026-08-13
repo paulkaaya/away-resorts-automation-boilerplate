@@ -1,0 +1,25 @@
+
+# Playwright
+node_modules/
+/test-results/
+.test-results/
+.test-reports/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+.playwright-cli/
+.playwright-mcp/
+
+# env
+.env
+
+# Claude
+.claude/
+CLAUDE.md
+
+# System
+.DS_Store
+
+# ESLint cache
+.eslintcache

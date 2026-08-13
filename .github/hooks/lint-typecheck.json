@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "type": "command",
+        "matcher": "edit|create",
+        "bash": "cd \"$(git rev-parse --show-toplevel)\"; L=$(pnpm exec eslint --fix . 2>&1); LS=$?; pnpm exec prettier --write . >/dev/null 2>&1; T=$(pnpm exec tsc --noEmit 2>&1); TS=$?; if [ $LS -ne 0 ] || [ $TS -ne 0 ]; then jq -n --arg l \"$L\" --arg t \"$T\" '{additionalContext: (\"eslint --fix:\\n\" + $l + \"\\n\\ntsc --noEmit:\\n\" + $t)}'; fi",
+        "powershell": "Set-Location (git rev-parse --show-toplevel); $l = (pnpm exec eslint --fix . 2>&1 | Out-String); $ls = $LASTEXITCODE; pnpm exec prettier --write . | Out-Null; $t = (pnpm exec tsc --noEmit 2>&1 | Out-String); $ts = $LASTEXITCODE; if ($ls -ne 0 -or $ts -ne 0) { @{ additionalContext = \"eslint --fix:`n$l`n`ntsc --noEmit:`n$t\" } | ConvertTo-Json -Compress }",
+        "cwd": ".",
+        "timeoutSec": 120
+      }
+    ]
+  }
+}

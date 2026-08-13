@@ -1,0 +1,22 @@
+# Normalise line endings so the repo is deterministic across Windows/macOS/Linux
+# and CI, regardless of each machine's core.autocrlf setting. Without this, files
+# written as LF in an autocrlf=true checkout show as permanently "modified".
+#
+# text=auto  -> Git decides text vs binary and stores text as LF in the repo.
+# eol=lf     -> check text files out as LF in the working tree too (no CRLF
+#               round-trip), which is what Node/pnpm/Playwright tooling expects.
+* text=auto eol=lf
+
+# Lockfile is managed by pnpm; leave its bytes alone.
+pnpm-lock.yaml -text
+
+# Binary assets: never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

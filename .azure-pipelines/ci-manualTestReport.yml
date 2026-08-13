@@ -1,0 +1,54 @@
+name: Playwright Test and Report - Manual Execution
+
+parameters:
+  - name: environment
+    displayName: Environment to run tests on
+    type: string
+    default: qa
+    values:
+      - qa
+      - string
+      - prod
+
+  - name: runAll
+    displayName: Run tests on all browsers?
+    type: string
+    default: false
+    values:
+      - true
+      - false
+
+  - name: args
+    displayName: Additional Playwright arguments
+    type: string
+    default: ' '
+
+  - name: generateScreenshots
+    displayName: Generate/update screenshots?
+    type: string
+    default: false
+    values:
+      - true
+      - false
+
+  - name: storeArtifacts
+    displayName: Store videos and screenshots from failed tests?
+    type: string
+    default: false
+    values:
+      - true
+      - false
+
+trigger: none # No trigger defines manual running
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+extends:
+  template: ci-templates/playwrightTemplate.yml
+  parameters:
+    environment: ${{ parameters.environment }}
+    runAll: ${{ parameters.runAll }}
+    args: ${{ parameters.args }}
+    generateScreenshots: ${{ parameters.generateScreenshots }}
+    storeArtifacts: ${{ parameters.storeArtifacts }}

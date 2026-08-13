@@ -1,0 +1,230 @@
+parameters:
+  - name: environment
+    type: string
+
+  - name: runAll
+    type: string
+
+  - name: args
+    type: string
+
+  - name: generateScreenshots
+    type: string
+
+  - name: storeArtifacts
+    type: string
+
+variables:
+  - group: playwright-variables
+  - name: currentDate
+    value: $[format('{0:yyyy}.{0:MM}.{0:dd}-{0:HH}.{0:mm}', pipeline.startTime)]
+  - name: workingDir
+    value: 'tests/playwright'
+  - name: dockerContainer
+    value: 'ecmchow/node-playwright-pnpm:v1.61.1-node22-pnpm11-noble'
+
+jobs:
+  - job: test_chrome
+    container: ${{ variables.dockerContainer }}
+    condition: and(eq('${{ parameters.runAll }}', 'false'), eq('${{ parameters.generateScreenshots }}', 'false'))
+    timeoutInMinutes: 60
+
+    steps:
+      - checkout: self
+
+      - script: |
+          pnpm install --frozen-lockfile
+        workingDirectory: '$(workingDir)'
+        displayName: 'Install dependencies'
+
+      # Run automated tests and report results to Testmo
+      - script: |
+          pnpm exec testmo automation:run:submit \
+            --instance "$TESTMO_URL" \
+            --project-id "$TESTMO_ID" \
+            --name "Playwright - ${{parameters.environment}} - $(currentDate) - Chromium Only" \
+            --source "frontend-playwright" \
+            --results .test-reports/testmo.xml \
+            -- pnpm exec playwright test --project Chrome "Mobile Chrome" ${{parameters.args}}
+        env:
+          TESTMO_TOKEN: '$(TESTMO_TOKEN)'
+          TESTMO_URL: '$(TESTMO_URL)'
+          TESTMO_ID: '$(TESTMO_ID)'
+          CI: 'true'
+          ENV: '${{ parameters.environment }}'
+        workingDirectory: '$(workingDir)'
+        displayName: 'Run tests and report results to Testmo'
+        continueOnError: true
+
+      # Publish test results to Azure Pipelines.
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: 'JUnit'
+          testResultsFiles: '$(workingDir)/.test-reports/junit-report.xml'
+
+      # Publish any retained screenshots or videos from test results
+      - task: PublishPipelineArtifact@1
+        displayName: 'Upload failed test screenshots and videos'
+        condition: eq('${{ parameters.storeArtifacts }}', 'true')
+        inputs:
+          targetPath: '$(workingDir)/.test-results'
+          artifact: 'failed-test-results-chrome-$(currentDate)'
+
+  - job: test_all_config
+    container: ${{ variables.dockerContainer }}
+    condition: and(eq('${{ parameters.runAll }}', 'true'), eq('${{ parameters.generateScreenshots }}', 'false'))
+
+    steps:
+      - script: |
+          pnpm dlx @testmo/testmo-cli automation:run:create \
+          --instance "$TESTMO_URL" \
+          --project-id "$TESTMO_ID" \
+          --name "Playwright - ${{parameters.environment}} - $(currentDate) - All Browser Variants" \
+          --source "frontend-playwright" > testmo-run-id.txt
+          ID=$(cat testmo-run-id.txt)
+          echo "##vso[task.setvariable variable=testmo-run-id;isOutput=true]$ID"
+        env:
+          TESTMO_TOKEN: '$(TESTMO_TOKEN)'
+          TESTMO_URL: '$(TESTMO_URL)'
+          TESTMO_ID: '$(TESTMO_ID)'
+        workingDirectory: '$(workingDir)'
+        name: createRun
+        displayName: 'Create Testmo run'
+
+  - job: test_all
+    container: ${{ variables.dockerContainer }}
+    dependsOn: test_all_config
+    condition: and(eq('${{ parameters.runAll }}', 'true'), eq('${{ parameters.generateScreenshots }}', 'false'))
+    variables:
+      runID: $[ dependencies.test_all_config.outputs['createRun.testmo-run-id'] ]
+
+    strategy:
+      matrix:
+        shard-1:
+          job-name: 1
+          shard: 1/4
+        shard-2:
+          job-name: 2
+          shard: 2/4
+        shard-3:
+          job-name: 3
+          shard: 3/4
+        shard-4:
+          job-name: 4
+          shard: 4/4
+
+    steps:
+      - checkout: self
+
+      - script: |
+          pnpm install --frozen-lockfile
+        workingDirectory: '$(workingDir)'
+        displayName: 'Install dependencies'
+
+      - script: |
+          pnpm exec testmo automation:run:submit-thread \
+          --instance "$TESTMO_URL" \
+          --run-id "$(runID)" \
+          --results .test-reports/testmo.xml \
+          -- pnpm exec playwright test ${{parameters.args}} --shard=$(shard)
+        env:
+          TESTMO_TOKEN: '$(TESTMO_TOKEN)'
+          TESTMO_URL: '$(TESTMO_URL)'
+          CI: 'true'
+          ENV: '${{ parameters.environment }}'
+        workingDirectory: '$(workingDir)'
+        displayName: 'Run tests and report thread results to Testmo'
+        continueOnError: true
+
+      # Publish test results to Azure Pipelines.
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: 'JUnit'
+          testResultsFiles: '$(workingDir)/.test-reports/junit-report.xml'
+
+      # Publish any retained screenshots or videos from test results
+      - task: PublishPipelineArtifact@1
+        displayName: 'Upload failed test screenshots and videos'
+        condition: eq('${{ parameters.storeArtifacts }}', 'true')
+        inputs:
+          targetPath: '$(workingDir)/.test-results'
+          artifact: 'failed-test-results-all-$(currentDate)'
+
+  - job: test_all_end
+    container: ${{ variables.dockerContainer }}
+    dependsOn:
+      - test_all_config
+      - test_all
+    condition: and(eq('${{ parameters.runAll }}', 'true'), eq('${{ parameters.generateScreenshots }}', 'false'))
+    variables:
+      runID: $[ dependencies.test_all_config.outputs['createRun.testmo-run-id'] ]
+    steps:
+      - script: |
+          pnpm dlx @testmo/testmo-cli automation:run:complete \
+          --instance "$TESTMO_URL" \
+          --run-id "$(runID)" \
+        env:
+          TESTMO_TOKEN: '$(TESTMO_TOKEN)'
+          TESTMO_URL: '$(TESTMO_URL)'
+        workingDirectory: '$(workingDir)'
+        displayName: 'Complete Testmo run'
+
+  - job: screenshot_gen_chrome
+    container: ${{ variables.dockerContainer }}
+    condition: and(eq('${{ parameters.runAll }}', 'false'), eq('${{ parameters.generateScreenshots }}', 'true'))
+    timeoutInMinutes: 60
+
+    steps:
+      - checkout: self
+
+      - script: |
+          pnpm install --frozen-lockfile
+        workingDirectory: '$(workingDir)'
+        displayName: 'Install dependencies'
+
+      - script: |
+          pnpm exec playwright test --update-snapshots --project Chrome "Mobile Chrome" --grep @visual ${{parameters.args}}
+        env:
+          CI: 'true'
+          ENV: '${{ parameters.environment }}'
+        workingDirectory: '$(workingDir)'
+        displayName: 'Generate/update snapshots'
+        condition: eq('${{ parameters.generateScreenshots }}', 'true')
+        continueOnError: true
+
+      # Publish updated snapshots
+      - task: PublishPipelineArtifact@1
+        displayName: 'Upload updated snapshots'
+        condition: eq('${{ parameters.generateScreenshots }}', 'true')
+        inputs:
+          targetPath: '$(workingDir)/screenshots'
+          artifact: 'updated-snapshots-chrome-$(currentDate)'
+
+  - job: screenshot_gen_all
+    container: ${{ variables.dockerContainer }}
+    condition: and(eq('${{ parameters.runAll }}', 'true'), eq('${{ parameters.generateScreenshots }}', 'true'))
+    timeoutInMinutes: 60
+
+    steps:
+      - checkout: self
+
+      - script: |
+          pnpm install --frozen-lockfile
+        workingDirectory: '$(workingDir)'
+        displayName: 'Install dependencies'
+
+      - script: |
+          pnpm exec playwright test --update-snapshots --grep @visual ${{parameters.args}}
+        env:
+          CI: 'true'
+          ENV: '${{ parameters.environment }}'
+        workingDirectory: '$(workingDir)'
+        displayName: 'Generate/update snapshots'
+        continueOnError: true
+
+      # Publish updated snapshots
+      - task: PublishPipelineArtifact@1
+        displayName: 'Upload updated snapshots'
+        inputs:
+          targetPath: '$(workingDir)/screenshots'
+          artifact: 'updated-snapshots-all-$(currentDate)'

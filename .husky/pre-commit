@@ -1,0 +1,73 @@
+#!/usr/bin/env sh
+# Pre-commit checks:
+#   1. Lint gate — `pnpm lint` (eslint .). Fail fast so a broken commit never
+#      lands. Fix with `pnpm lint:fix`.
+#   2. Format gate — `pnpm exec prettier --check .`. Fix with `pnpm format`.
+#   3. Keep the Playwright Docker container in ci-templates/playwrightTemplate.yml
+#      in sync with the @playwright/test version and pnpm major version in
+#      package.json.
+
+# --- 1. Lint gate -------------------------------------------------------------
+echo "pre-commit: running ESLint..."
+pnpm lint || exit 1
+
+# --- 2. Format gate ------------------------------------------------------------
+echo "pre-commit: running Prettier (format check)..."
+pnpm exec prettier --check . || exit 1
+
+# --- 3. Playwright Docker container sync -------------------------------------
+TEMPLATE="ci-templates/playwrightTemplate.yml"
+
+# Only act when package.json is staged for this commit.
+git diff --cached --name-only | grep -qx "package.json" || exit 0
+[ -f "$TEMPLATE" ] || exit 0
+
+# Pull the versions from the staged copy of package.json (the index, ":path"),
+# not the working tree, so we sync exactly what is being committed.
+# Strip any leading range specifier (^, ~, >=, etc.) to get a bare semver.
+staged_pkg=$(git show :package.json)
+
+version=$(echo "$staged_pkg" \
+  | grep '"@playwright/test"' \
+  | sed -E 's/.*"@playwright\/test"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/' \
+  | sed -E 's/^[^0-9]*//')
+
+pnpmMajor=$(echo "$staged_pkg" \
+  | grep '"packageManager"' \
+  | sed -E 's/.*"packageManager"[[:space:]]*:[[:space:]]*"pnpm@([0-9]+)\..*/\1/')
+
+if [ -z "$version" ] || [ -z "$pnpmMajor" ]; then
+  echo "pre-commit: could not determine @playwright/test or pnpm version; skipping Docker sync." >&2
+  exit 0
+fi
+
+# The image bundles Node too, but its major version isn't tracked in package.json,
+# so preserve whatever node<NN> segment is already in the template rather than
+# guessing at one.
+nodeMajor=$(grep -oE 'ecmchow/node-playwright-pnpm:v[^'"'"']*-node[0-9]+' "$TEMPLATE" \
+  | head -n1 \
+  | sed -E 's/.*-node([0-9]+)$/\1/')
+
+if [ -z "$nodeMajor" ]; then
+  echo "pre-commit: could not determine current Node major version from ${TEMPLATE}; skipping Docker sync." >&2
+  exit 0
+fi
+
+desired="ecmchow/node-playwright-pnpm:v${version}-node${nodeMajor}-pnpm${pnpmMajor}-noble"
+
+# Read the current container tag and bail out early if it already matches. This
+# is the common case (most package.json commits don't bump Playwright/pnpm);
+# skipping the rewrite avoids needlessly touching the file and re-staging an
+# unchanged one.
+current=$(grep -oE "ecmchow/node-playwright-pnpm:v[^']*" "$TEMPLATE" | head -n1)
+[ "$current" = "$desired" ] && exit 0
+
+# Version differs — rewrite the dockerContainer value. Write via temp file + mv
+# for portability (avoids GNU/BSD `sed -i` differences across Linux/macOS/Git Bash).
+tmp=$(mktemp)
+sed -E "s|(value:[[:space:]]*')ecmchow/node-playwright-pnpm:v[^']*(')|\1${desired}\2|" \
+  "$TEMPLATE" > "$tmp" && mv "$tmp" "$TEMPLATE"
+
+# Re-stage so the sync lands in the same commit.
+git add "$TEMPLATE"
+echo "pre-commit: synced Playwright Docker container ${current:-<none>} -> ${desired} in ${TEMPLATE}"

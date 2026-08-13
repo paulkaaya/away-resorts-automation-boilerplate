@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "ybaumes.highlight-trailing-white-spaces",
+    "oderwat.indent-rainbow",
+    "christian-kohler.npm-intellisense",
+    "ms-playwright.playwright",
+    "esbenp.prettier-vscode",
+    "pflannery.vscode-versionlens"
+  ]
+}
