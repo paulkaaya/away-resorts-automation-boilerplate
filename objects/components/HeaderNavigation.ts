@@ -16,6 +16,9 @@ export class HeaderNav {
   readonly searchModalTextField: Locator;
   readonly searchModalGo: Locator;
   readonly skipNav: Locator;
+  readonly logo: Locator;
+  readonly loginTrigger: Locator;
+  readonly loginModal: Locator;
 
   constructor(page: Page, isMobile?: boolean) {
     this.page = page;
@@ -42,6 +45,25 @@ export class HeaderNav {
 
     //others
     this.skipNav = this.page.getByTestId('skip-nav');
+    this.logo = this.header
+      .locator('.container')
+      .locator('.py-0')
+      .locator('.site-header__logo-wrapper')
+      .locator('a');
+    this.loginTrigger = this.header
+      .locator('.order-xl-2')
+      .locator('.d-lg-flex')
+      .getByRole('link', { name: 'Log in' });
+    this.loginModal = this.page.locator('#login-popup');
+  }
+
+  /**
+   * Opens the login modal by clicking the header's login link.
+   * @returns A promise that resolves once the login modal is no longer hidden.
+   */
+  async openLoginModal(): Promise<void> {
+    await this.loginTrigger.click();
+    await expect(this.loginModal).not.toHaveClass(/popup--hidden/);
   }
 }
 

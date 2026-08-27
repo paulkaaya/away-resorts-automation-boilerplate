@@ -1,3 +1,4 @@
+import { CookieBanner } from '@components/CookieBanner';
 import { FooterNav } from '@components/FooterNavigation';
 import { HeaderNav } from '@components/HeaderNavigation';
 import { expect, type Locator, type Page } from '@playwright/test';
@@ -18,6 +19,9 @@ export class BasePage {
   readonly searchUrl: string;
   readonly header: HeaderNav;
   readonly footer: FooterNav;
+  readonly cookieBanner: CookieBanner;
+  readonly mainContentBlocks: Locator;
+  readonly mainContentLinks: Locator;
 
   //SEO & Social locators
   readonly pageTitle: Locator;
@@ -43,6 +47,12 @@ export class BasePage {
     this.searchUrl = envManager.getValue('searchUrl');
     this.header = new HeaderNav(page, this.isMobile());
     this.footer = new FooterNav(page);
+    this.cookieBanner = new CookieBanner(page);
+    const contentWrap = this.page.locator('.content-wrap');
+    this.mainContentBlocks = contentWrap
+      .locator('> section.py-6')
+      .and(contentWrap.locator('> section.py-md-8'));
+    this.mainContentLinks = this.mainContentBlocks.getByRole('link');
 
     //SEO & Social locators
     this.pageTitle = this.page.locator('head title');

@@ -2,38 +2,73 @@ import type { Locator, Page } from '@playwright/test';
 
 export class FooterNav {
   readonly page: Page;
+  readonly footerSelector: string;
   readonly section: Locator;
-  readonly topSection: Locator;
-  readonly logo: Locator;
-  readonly logoLink: Locator;
+  readonly columns: Locator;
   readonly socialLinks: Locator;
-  readonly columnOne: Locator;
-  readonly columnTwo: Locator;
-  readonly columnThree: Locator;
-  readonly bottomSection: Locator;
-  readonly bottomLinks: Locator;
 
   constructor(page: Page) {
     this.page = page;
 
-    this.section = this.page.locator('footer');
-    this.topSection = this.section.getByTestId('footer-upper-section');
-    this.logo = this.topSection.getByTestId('footer-logo-section');
-    this.logoLink = this.logo.locator('a', { has: this.page.locator('img') });
-    this.socialLinks = this.topSection.getByTestId('footer-logo-social');
-    this.columnOne = this.topSection.getByTestId('footer-links-section').first();
-    this.columnTwo = this.topSection.getByTestId('footer-links-section').nth(1);
-    this.columnThree = this.topSection.getByTestId('footer-content-section');
-    this.bottomSection = this.section.getByTestId('footer-lower-section');
-    this.bottomLinks = this.bottomSection.locator('a');
+    this.footerSelector = 'footer';
+    this.section = this.page.locator(this.footerSelector);
+    this.columns = this.section.locator('.site-footer__links');
+    this.socialLinks = this.section.locator('.site-footer__info');
   }
 
   /**
-   * Returns the links within the given footer column.
-   * @param column - The Locator for the footer column to read links from.
-   * @returns A promise resolving to a Locator matching the column's links.
+   * Returns a footer CMS-link column title by its visible text.
+   * @param title - The visible text of the column title.
+   * @returns A Locator for the matching footer column title.
    */
-  async getColumnLinks(column: Locator): Promise<Locator> {
-    return column.locator('a');
+  getColumnTitle(title: string): Locator {
+    return this.getColumn(title).locator('p');
+  }
+
+  /**
+   * Returns the CMS-link accordion title for the specified column.
+   * @param title - The accessible name of the column's accordion title.
+   * @returns A Locator for the matching accordion title.
+   */
+  getColumnToggle(title: string): Locator {
+    return this.getColumn(title).getByRole('link', { name: title, exact: true });
+  }
+
+  /**
+   * Returns a social link by its accessible name.
+   * @param name - The accessible name of the social link.
+   * @returns A Locator for the matching social link.
+   */
+  getSocialLink(name: string): Locator {
+    return this.socialLinks.getByRole('link', { name, exact: true });
+  }
+
+  /**
+   * Opens the specified footer column's mobile accordion.
+   * @param title - The accessible name of the column's accordion title.
+   * @returns A promise that resolves when the column is expanded.
+   */
+  async openColumn(title: string): Promise<void> {
+    const toggle = this.getColumnToggle(title);
+    await toggle.click();
+  }
+
+  /**
+   * Returns the footer CMS-link column associated with the specified title.
+   * @param title - The visible text of the column title.
+   * @returns A Locator for the matching footer column.
+   */
+  getColumn(title: string): Locator {
+    return this.columns.filter({
+      has: this.page.locator('p').filter({ hasText: new RegExp(`^${title}$`) }),
+    });
+  }
+
+  /**
+   * Returns CMS-managed, same-site footer links.
+   * @returns A Locator matching the footer's CMS links.
+   */
+  getCmsLinks(): Locator {
+    return this.columns.locator('.expandable-sm-down').locator('a[href]');
   }
 }

@@ -1,6 +1,17 @@
 import { expect, test } from '@base';
 
 test.describe('global seo', () => {
+  test('robots.txt is reachable and references the sitemap', async ({ request, envManager }) => {
+    const response = await request.get(envManager.getValue('robotsTxt'));
+
+    expect(response.status(), "robots.txt doesn't exist").toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('User-agent');
+    expect(body.toLowerCase()).toContain(envManager.getValue('baseUrl').toLowerCase());
+  });
+
   test('xml sitemap', async ({ page, envManager }) => {
     const baseURL = envManager.getValue('baseUrl');
     const sitemapInstance = '<loc>' + baseURL;
@@ -21,6 +32,14 @@ test.describe('global seo', () => {
     const response = await page.goto('/abcdefg');
 
     expect(response?.status(), `No 404 response code, does this page exist?`).toBe(404);
+  });
+
+  test('404 page renders full site styling', async ({ basePage, page }) => {
+    await page.goto('/abcdefg');
+
+    await basePage.checkHeaderVisible();
+    await basePage.checkFooterVisible();
+    await basePage.verifySEO();
   });
 
   test('https implementation', async ({ basePage, request }) => {

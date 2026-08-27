@@ -1,3 +1,4 @@
+import { CookieBanner } from '@components/CookieBanner';
 import { FooterNav } from '@components/FooterNavigation';
 import { HeaderNav } from '@components/HeaderNavigation';
 import { BasePage } from '@pages/BasePage';
@@ -188,8 +189,8 @@ export const test = base.extend<
   ],
 
   /**
-   * Auto-running fixture that, when `dismissCookies` is true, pre-seeds the OneTrust consent
-   * cookie so tests don't need to click through the cookie banner.
+   * Auto-running fixture that, when `dismissCookies` is true, pre-seeds the site's `accepted-cookies`
+   * consent cookie so tests don't need to click through the cookie banner.
    * @param root0 - Destructured test context.
    * @param root0.context - The Playwright browser context for the test.
    * @param root0.baseURL - The base URL for the test.
@@ -201,13 +202,12 @@ export const test = base.extend<
   cookieConsent: [
     async ({ context, baseURL, dismissCookies, envManager }, use): Promise<void> => {
       if (dismissCookies) {
-        // OneTrust banner suppression — setting this cookie up-front avoids a
-        // banner-dismissal click on every test and speeds the suite up a lot.
-        // Swap the cookie name/value for your consent provider as needed.
+        // Setting this cookie up-front avoids a banner-dismissal click on
+        // every test and speeds the suite up a lot.
         await context.addCookies([
           {
-            name: 'OptanonAlertBoxClosed',
-            value: new Date().toISOString(),
+            name: 'accepted-cookies',
+            value: 'true',
             url: baseURL ?? envManager.getValue('baseUrl'),
           },
         ]);
@@ -340,6 +340,7 @@ export const test = base.extend<
     page => new HeaderNav(page, (page.viewportSize()?.width || 0) < 768)
   ),
   footerNavigation: createComponentFixture(page => new FooterNav(page)),
+  cookieBanner: createComponentFixture(page => new CookieBanner(page)),
   /* Add other component fixtures here as needed, make sure to import them */
 });
 

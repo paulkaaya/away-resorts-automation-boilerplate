@@ -1,3 +1,4 @@
+import { CookieBanner } from '@components/CookieBanner';
 import { FooterNav } from '@components/FooterNavigation';
 import { HeaderNav } from '@components/HeaderNavigation';
 import { BasePage } from '@pages/BasePage';
@@ -11,4 +12,5 @@ export type Pages = {
 export type Components = {
   headerNavigation: HeaderNav;
   footerNavigation: FooterNav;
+  cookieBanner: CookieBanner;
 };
