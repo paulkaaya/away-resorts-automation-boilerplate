@@ -16,11 +16,12 @@ This document works through your regression CSV folder-by-folder, flags what's a
 | Test | Fit | Notes |
 | --- | --- | --- |
 | First load / banner shows | ✅ | `context.clearCookies()` before test, assert banner locator visible |
-| Navigate with banner open | ✅ | Loop over a few routes, assert banner still visible each time |
-| Accept cookies | ✅ | Click accept, assert banner hidden, assert cookie value set via `context.cookies()` |
-| Clear cookies → banner returns | ✅ | Straightforward |
+| Navigate after consent | ✅ | Cookiebot blocks background interaction until resolved; accept, reload and navigate, then verify consent persists |
+| Accept cookies | ✅ | Click Allow all, assert banner hidden and all categories saved in `CookieConsent` |
+| Category selection / Reject | ✅ | Verify Necessary stays enabled, all six partial selections and rejection persist after reload; assert category booleans and explicit method, not stamp/timestamp |
+| Clear cookies → banner returns | ✅ | Clear `CookieConsent`, reload and assert the banner returns |
 
-This whole folder is a great first folder to build — no auth, no payment, fast, and teaches you the cookie-banner dismissal helper you'll reuse in `beforeEach` for almost every other test.
+Shared tests automatically accept Cookiebot before blocked interactions through the `cookieConsent` fixture. Cookie tests use `test.use({ dismissCookies: false })` to exercise the real UI without automatic acceptance or pre-seeded consent. Lighthouse resolves consent separately on its audit page. Category assertions verify saved preferences, not third-party tracker enforcement (analytics are independently blocked by the suite).
 
 ## *Header & Nav
 
@@ -103,17 +104,21 @@ Since these five forms share nearly identical Given/When/Then shapes, write one 
 | Test | Fit | Notes |
 | --- | --- | --- |
 | Display / images load | ✅ | Assert no broken images: loop `page.locator('img')`, check `naturalWidth` via `evaluate`, and listen for `page.on('response')` 4xx/5xx on image requests |
-| Blocks check (CMS block ↔ frontend match) | 🛑/⚠️ | This is fundamentally a **content** check, not a **functional** check. Doing it generically requires either CMS API access to diff block config against rendered DOM (moderate effort, most robust) or per-page hardcoded assertions (brittle — breaks every time content changes). Recommend deprioritising true 1:1 CMS-diffing and instead using **visual regression snapshots** (Playwright's `toHaveScreenshot()`) on a fixed set of representative pages, reviewed by a human on diff |
-| Functionality (links work, blocks interactive) | ✅ | Generic "crawl all links on page, assert no 404s" script works well here and covers a lot of ground cheaply |
-| Schema (structured data) | ✅ | Extract `<script type="application/ld+json">`, `JSON.parse` it, validate against expected shape/schema.org type — fully scriptable, no visual judgement needed |
+| Blocks / layout / appearance | Manual | Review representative desktop/mobile pages alongside regression. No new visual snapshot baseline or automated CMS-to-frontend content comparison for this scope. |
+| Link reachability | ✅ | Homepage hero and selected main-content sections: resolve relative URLs, deduplicate without fragments, retain query parameters, and GET same-origin destinations with three concurrent requests. Follow up to five safe redirects and require final 2xx; report 4xx/5xx, network errors and excluded redirect targets. Skip external, fragment-only, email/telephone and account/booking/payment/action routes. This is a one-hop audit, not a recursive crawler; existing header/footer tests remain separate. |
+| Block interactions | ✅ | Retain targeted carousel, CTA and booking-bar interaction checks. HTTP success alone does not establish the intended destination, working JavaScript, in-page anchors or absence of soft 404s. |
+| Schema (structured data) | ✅ | Parse all JSON-LD scripts, accepting object/array and `@graph` containers. Homepage baseline checks schema.org context, `WebSite`, `Organization` and `TouristTrip`, nonempty names/descriptions as applicable, and public production identity URLs even on pre-production. This is a regression contract, not full schema.org validation or proof of Google rich-result eligibility. |
+
+Implementation: `tests/homePage.spec.ts`, reusable `BasePage.checkContentLinks()` and `utils/linkAudit.ts`; JSON-LD parsing/contract in `utils/structuredData.ts`. Add landing-page cases once representative URLs and their schema expectations are agreed; do not assume every template publishes the homepage types.
+
+Live and pre-production homepage inspection on 4 November 2026 found two JSON-LD scripts: one `TouristTrip` with nested park trips, and an array containing `WebSite` and `Organization`. SEO review is still needed for semantic/content accuracy: live includes “The Bay Fiely”, an old-looking WordPress logo path, and an organization address that differs from the rendered registered-office text. These observations are not silently promoted into exact-copy assertions.
 
 ## *404
 
 | Test | Fit | Notes |
 | --- | --- | --- |
-| Invalid URL redirects to 404 | ✅ |  |
-| 404 status code | ✅ | Use `page.request.get()` (or listen to the navigation response) rather than manually opening DevTools — Playwright gives you the real status code directly |
-| 404 page display/links | ✅ |  |
+| Unknown homepage route returns HTTP 404 | ✅ | Navigate to a stable, improbable nonsense path derived from the configured homepage and assert the navigation response is 404 (not a soft 404) |
+| 404 page content and recovery | ✅ | Assert the 404 heading/message and shared header/footer, then follow the Return to homepage link and verify navigation back to the configured homepage |
 
 ## General (CMS admin)
 

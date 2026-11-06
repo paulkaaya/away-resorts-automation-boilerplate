@@ -1,8 +1,22 @@
+import { CallbackForm } from '@components/CallbackForm';
+import { ContactForm } from '@components/ContactForm';
 import { CookieBanner } from '@components/CookieBanner';
+import { EnquiryForm } from '@components/EnquiryForm';
 import { FooterNav } from '@components/FooterNavigation';
 import { HeaderNav } from '@components/HeaderNavigation';
+import { LoginForm } from '@components/LoginForm';
+import { NewsletterForm } from '@components/NewsletterForm';
+import { ViewingForm } from '@components/ViewingForm';
 import { BasePage } from '@pages/BasePage';
+import { ConfirmationPage } from '@pages/ConfirmationPage';
+import { DetailsPage } from '@pages/DetailsPage';
+import { ExtrasPage } from '@pages/ExtrasPage';
+import { HolidayHomeListingsPage } from '@pages/HolidayHomeListingsPage';
+import { HolidayHomesPage } from '@pages/HolidayHomesPage';
 import { HomePage } from '@pages/HomePage';
+import { NotFoundPage } from '@pages/NotFoundPage';
+import { PaymentPage } from '@pages/PaymentPage';
+import { SearchBarPage } from '@pages/SearchBarPage';
 import type { Browser, Page } from '@playwright/test';
 import { test as base, chromium } from '@playwright/test';
 import type { Components, Pages } from '@types';
@@ -124,8 +138,8 @@ type EnvWorkerFixtures = {
 
 type Options = {
   /**
-   * When true (default), the cookie-consent banner is suppressed before each
-   * test by pre-seeding the consent cookie. Suites that exercise the banner
+   * When true (default), Cookiebot is accepted automatically before blocked
+   * interactions. Suites that exercise the banner
    * itself opt out per-file with `test.use({ dismissCookies: false })`.
    */
   dismissCookies: boolean;
@@ -177,6 +191,7 @@ export const test = base.extend<
    * context, so test traffic never reaches Google Tag Manager / Analytics.
    * @param root0 - Destructured test context.
    * @param root0.context - The Playwright browser context for the test.
+   * @param root0.analyticsBlocked
    * @param use - Function to call with the fixture's value.
    * @returns A promise that resolves once the route has been registered.
    */
@@ -189,30 +204,26 @@ export const test = base.extend<
   ],
 
   /**
-   * Auto-running fixture that, when `dismissCookies` is true, pre-seeds the site's `accepted-cookies`
-   * consent cookie so tests don't need to click through the cookie banner.
+   * Registers automatic Cookiebot acceptance before blocked interactions unless opted out.
    * @param root0 - Destructured test context.
-   * @param root0.context - The Playwright browser context for the test.
-   * @param root0.baseURL - The base URL for the test.
+   * @param root0.page - The test page on which to register the overlay handler.
    * @param root0.dismissCookies - Whether to dismiss the cookie banner.
-   * @param root0.envManager - The resolved config for the active environment.
    * @param use - Function to call with the fixture's value.
-   * @returns A promise that resolves once the cookie has been set (or skipped).
+   * @returns A promise that resolves after the handler is removed at teardown.
    */
   cookieConsent: [
-    async ({ context, baseURL, dismissCookies, envManager }, use): Promise<void> => {
+    async ({ page, dismissCookies }, use): Promise<void> => {
+      const banner = new CookieBanner(page);
       if (dismissCookies) {
-        // Setting this cookie up-front avoids a banner-dismissal click on
-        // every test and speeds the suite up a lot.
-        await context.addCookies([
-          {
-            name: 'accepted-cookies',
-            value: 'true',
-            url: baseURL ?? envManager.getValue('baseUrl'),
-          },
-        ]);
+        await page.addLocatorHandler(banner.root, () => banner.acceptCookies());
       }
-      await use();
+      try {
+        await use();
+      } finally {
+        if (dismissCookies && !page.isClosed()) {
+          await page.removeLocatorHandler(banner.root);
+        }
+      }
     },
     { auto: true },
   ],
@@ -225,10 +236,15 @@ export const test = base.extend<
    * @param root0.lighthouseBrowser - The Chromium browser launched with remote debugging enabled, used to run audits.
    * @param root0.lighthousePort - The unique remote-debugging port for this Playwright worker, so parallel workers' Lighthouse browsers don't collide.
    * @param root0.envManager - The resolved config for the active environment.
+   * @param root0.dismissCookies - Whether to accept Cookiebot before the audit.
+   * @param root0.dismissCookies
    * @param use - Function to call with the fixture's value.
    * @returns A promise that resolves once the audit has completed.
    */
-  lighthouse: async ({ lighthouseBrowser, lighthousePort, envManager }, use): Promise<void> => {
+  lighthouse: async (
+    { lighthouseBrowser, lighthousePort, envManager, dismissCookies },
+    use
+  ): Promise<void> => {
     const runLighthouse = async (
       pageInstance: Pages[keyof Pages],
       customUrl?: string,
@@ -239,6 +255,10 @@ export const test = base.extend<
       // Create a temporary page object instance for navigation
       const tempPageInstance = new (pageInstance.constructor as any)(page, envManager);
       await tempPageInstance.goto(customUrl);
+
+      if (dismissCookies) {
+        await new CookieBanner(page).acceptCookies();
+      }
 
       await playAudit({
         page: page as any,
@@ -333,6 +353,14 @@ export const test = base.extend<
   //page types
   basePage: createPageFixture(BasePage),
   homePage: createPageFixture(HomePage),
+  notFoundPage: createPageFixture(NotFoundPage),
+  searchBarPage: createPageFixture(SearchBarPage),
+  extrasPage: createPageFixture(ExtrasPage),
+  detailsPage: createPageFixture(DetailsPage),
+  paymentPage: createPageFixture(PaymentPage),
+  confirmationPage: createPageFixture(ConfirmationPage),
+  holidayHomesPage: createPageFixture(HolidayHomesPage),
+  holidayHomeListingsPage: createPageFixture(HolidayHomeListingsPage),
   /* Add other page types here as needed, make sure to import them */
 
   //component types
@@ -341,6 +369,12 @@ export const test = base.extend<
   ),
   footerNavigation: createComponentFixture(page => new FooterNav(page)),
   cookieBanner: createComponentFixture(page => new CookieBanner(page)),
+  callbackForm: createComponentFixture(page => new CallbackForm(page)),
+  viewingForm: createComponentFixture(page => new ViewingForm(page)),
+  enquiryForm: createComponentFixture(page => new EnquiryForm(page)),
+  contactForm: createComponentFixture(page => new ContactForm(page)),
+  newsletterForm: createComponentFixture(page => new NewsletterForm(page)),
+  loginForm: createComponentFixture(page => new LoginForm(page)),
   /* Add other component fixtures here as needed, make sure to import them */
 });
 

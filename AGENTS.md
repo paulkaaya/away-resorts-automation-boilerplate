@@ -42,7 +42,8 @@ Tag tests with `@desktop`, `@mobile`, `@quality-gate`, `@smoke`, `@regression`, 
 - `qualityGate(pageObj, customUrl?)`
 - `accessibility(pageObj, customUrl?)`
 - `lighthouse(pageObj, customUrl?, thresholds?)`
-- Auto fixtures for analytics blocking and cookie-consent pre-seeding
+- Auto fixtures for analytics blocking and Cookiebot acceptance before blocked interactions
+- Cookie tests opt out with `test.use({ dismissCookies: false })`; no consent cookie is pre-seeded
 
 ## Auth
 

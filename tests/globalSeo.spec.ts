@@ -1,5 +1,7 @@
 import { expect, test } from '@base';
 
+const notFoundPath = '/playwright-404-check-not-found-route-20261106/';
+
 test.describe('global seo', () => {
   test('robots.txt is reachable and references the sitemap', async ({ request, envManager }) => {
     const response = await request.get(envManager.getValue('robotsTxt'));
@@ -28,18 +30,23 @@ test.describe('global seo', () => {
     ).toHaveCount(await baseURLOccurrences.count());
   });
 
-  test('404', async ({ page }) => {
-    const response = await page.goto('/abcdefg');
+  test('unknown homepage route returns a styled 404 page with recovery', async ({
+    homePage,
+    notFoundPage,
+    page,
+  }) => {
+    const notFoundUrl = new URL(notFoundPath, homePage.url).toString();
+    const response = await page.goto(notFoundUrl);
 
-    expect(response?.status(), `No 404 response code, does this page exist?`).toBe(404);
-  });
+    expect(response?.status(), 'Unknown route should return an HTTP 404 response').toBe(404);
 
-  test('404 page renders full site styling', async ({ basePage, page }) => {
-    await page.goto('/abcdefg');
+    await notFoundPage.verifyNotFoundContent();
 
-    await basePage.checkHeaderVisible();
-    await basePage.checkFooterVisible();
-    await basePage.verifySEO();
+    await notFoundPage.checkHeaderVisible();
+    await notFoundPage.checkFooterVisible();
+
+    await notFoundPage.clickReturnToHomepage();
+    await expect(page).toHaveURL(new URL(homePage.url).toString());
   });
 
   test('https implementation', async ({ basePage, request }) => {

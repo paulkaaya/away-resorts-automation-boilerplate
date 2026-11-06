@@ -1,8 +1,10 @@
 import { CookieBanner } from '@components/CookieBanner';
 import { FooterNav } from '@components/FooterNavigation';
 import { HeaderNav } from '@components/HeaderNavigation';
+import type { APIRequestContext } from '@playwright/test';
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { EnvironmentManager } from '@utils/environmentManager';
+import { auditLinks, collectInternalLinks } from '@utils/linkAudit';
 
 type BoundingBox = Awaited<ReturnType<Locator['boundingBox']>>;
 
@@ -52,7 +54,7 @@ export class BasePage {
     this.mainContentBlocks = contentWrap
       .locator('> section.py-6')
       .and(contentWrap.locator('> section.py-md-8'));
-    this.mainContentLinks = this.mainContentBlocks.getByRole('link');
+    this.mainContentLinks = this.mainContentBlocks.getByRole('link', { includeHidden: true });
 
     //SEO & Social locators
     this.pageTitle = this.page.locator('head title');
@@ -80,6 +82,27 @@ export class BasePage {
   }
 
   /* SEO and Quality Checks */
+  /**
+   * Audits selected content links without recursively crawling destinations.
+   * @param request - The test's API request context.
+   * @param links - Content links to audit; defaults to this page's content blocks.
+   * @returns Resolves after checking all eligible links and reporting failures together.
+   */
+  async checkContentLinks(
+    request: APIRequestContext,
+    links = this.mainContentLinks
+  ): Promise<void> {
+    await expect(this.mainContentBlocks.first()).toBeVisible();
+    const hrefs = await links.evaluateAll(elements =>
+      elements.map(element => element.getAttribute('href') || '')
+    );
+    const sourceUrl = this.page.url();
+    const urls = collectInternalLinks(hrefs, sourceUrl);
+    expect(urls.length, `No eligible content links found on ${sourceUrl}`).toBeGreaterThan(0);
+    const failures = await auditLinks(request, urls, sourceUrl);
+    expect(failures, failures.join('\n')).toEqual([]);
+  }
+
   /**
    * Asserts that the page's core SEO tags (canonical URL, title, OpenGraph, robots, viewport) are attached.
    * @returns A promise that resolves once the assertions have been made.

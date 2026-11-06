@@ -50,10 +50,7 @@ export class HeaderNav {
       .locator('.py-0')
       .locator('.site-header__logo-wrapper')
       .locator('a');
-    this.loginTrigger = this.header
-      .locator('.order-xl-2')
-      .locator('.d-lg-flex')
-      .getByRole('link', { name: 'Log in' });
+    this.loginTrigger = this.header.getByRole('link', { name: 'Log in' });
     this.loginModal = this.page.locator('#login-popup');
   }
 

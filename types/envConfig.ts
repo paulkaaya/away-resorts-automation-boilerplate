@@ -8,6 +8,13 @@ export interface EnvConfig {
   robotsTxt?: string;
   searchUrl?: string;
   articleUrl?: string;
+  bookingReference?: string;
+  bookingSurname?: string;
+  formTitle?: string;
+  formFirstName?: string;
+  formLastName?: string;
+  formEmail?: string;
+  formPhone?: string;
 }
 
 /*

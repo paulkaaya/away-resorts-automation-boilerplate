@@ -70,6 +70,14 @@ Available shared helpers include:
 - `accessibility(pageObj, customUrl?)`
 - `lighthouse(pageObj, customUrl?, thresholds?)`
 
+### Homepage links and structured data
+
+`tests/homePage.spec.ts` audits homepage hero and main-content links and validates the observed JSON-LD contract. Visual/layout review stays manual alongside regression; existing block interaction tests remain automated.
+
+- `BasePage.checkContentLinks(request, links?)` uses `utils/linkAudit.ts` to resolve and deduplicate same-origin HTTP links. It skips non-HTTP, fragment-only and account/booking/payment/action links, limits concurrency to three, follows at most five safe redirects and requires final 2xx responses. External/action redirects are reported without following them. It does not recursively crawl, detect soft 404s or prove the intended destination.
+- `HomePage.checkStructuredData()` uses `utils/structuredData.ts` to parse every JSON-LD script, including arrays and graph containers, and check `WebSite`, `Organization` and `TouristTrip` fields. Public entity URLs remain production URLs on pre-production. This is a regression baseline, not complete schema.org validation.
+- These are direct-import utilities, not fixtures. `tests/pageAudit.spec.ts` covers normalization, redirects, failures and schema parsing against deterministic local data. Landing templates need their own agreed URLs and schema contracts before coverage is added.
+
 ## CI/CD
 
 Azure pipeline files are in `.azure-pipelines/` and `ci-templates/`.

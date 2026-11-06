@@ -48,19 +48,22 @@ test.describe('hero banner', () => {
 });
 
 test.describe('homepage content links', () => {
-  test('main content links do not 404 @regression', async ({ homePage, request }) => {
+  test('hero and main content links resolve successfully @regression', async ({
+    homePage,
+    request,
+  }) => {
+    test.setTimeout(180_000);
     await homePage.goto();
 
-    const hrefs = await homePage.mainContentLinks.evaluateAll(links =>
-      (links as HTMLAnchorElement[]).map(link => link.href).filter(href => href.startsWith('http'))
-    );
+    await homePage.checkContentLinks(request, homePage.contentAuditLinks);
+  });
+});
 
-    const uniqueHrefs = [...new Set(hrefs)];
+test.describe('homepage structured data', () => {
+  test('publishes the expected JSON-LD entities @regression', async ({ homePage }) => {
+    await homePage.goto();
 
-    for (const href of uniqueHrefs) {
-      const response = await request.get(href);
-      expect.soft(response.status(), href).toBeLessThan(400);
-    }
+    await homePage.checkStructuredData();
   });
 });
 

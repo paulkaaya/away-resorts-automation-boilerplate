@@ -1,7 +1,9 @@
 import { BookingBar } from '@components/BookingBar';
 import { BasePage } from '@pages/BasePage';
 import type { Locator, Page } from '@playwright/test';
+import { expect } from '@playwright/test';
 import type { EnvironmentManager } from '@utils/environmentManager';
+import { validateHomepageSchema } from '@utils/structuredData';
 
 export class HomePage extends BasePage {
   readonly heroBlock: Locator;
@@ -14,6 +16,7 @@ export class HomePage extends BasePage {
   readonly activeHeroSlide: Locator;
   readonly inactiveHeroSlides: Locator;
   readonly heroBookingBar: BookingBar;
+  readonly contentAuditLinks: Locator;
 
   constructor(page: Page, envManager: EnvironmentManager) {
     super(page, envManager);
@@ -33,10 +36,24 @@ export class HomePage extends BasePage {
       '.hero-carousel-v2__slide:not(.swiper-slide-visible)'
     );
     this.heroBookingBar = new BookingBar(this.page.locator('#hero-booking-v2'));
+    this.contentAuditLinks = this.mainContentLinks.or(
+      this.heroBlock.getByRole('link', { includeHidden: true })
+    );
   }
   /**
-   *
-   * @returns
+   * Validates all homepage JSON-LD against the types observed on live and pre-production.
+   * @returns Resolves once the public entity identities and required fields have been checked.
+   */
+  async checkStructuredData(): Promise<void> {
+    await expect(this.breadcrumbSchema.first()).toBeAttached();
+    const scripts = await this.breadcrumbSchema.allTextContents();
+    const failures = validateHomepageSchema(scripts, 'https://www.awayresorts.co.uk/');
+    expect(failures, `${this.page.url()} JSON-LD:\n${failures.join('\n')}`).toEqual([]);
+  }
+
+  /**
+   * Pauses the hero carousel before deterministic interaction checks.
+   * @returns Resolves after clicking the playback control.
    */
   async pauseCarousel(): Promise<void> {
     await this.carouselPause.click();

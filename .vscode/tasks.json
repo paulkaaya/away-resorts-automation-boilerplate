@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Cookiebot: paired baseline and smoke",
+      "type": "shell",
+      "command": "$env:CONSENT_RUN_ID='2026-10-16-smoke'; pnpm exec playwright test --config playwright.consent.config.ts baseline.spec.ts smoke.spec.ts reference.spec.ts",
+      "isBackground": false,
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

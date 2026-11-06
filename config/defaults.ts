@@ -10,4 +10,11 @@ export const defaults: Required<Omit<EnvConfig, 'baseUrl'>> = {
   robotsTxt: '',
   searchUrl: '',
   articleUrl: '',
+  bookingReference: '',
+  bookingSurname: '',
+  formTitle: 'Mr',
+  formFirstName: 'Paul Testing',
+  formLastName: 'Kaaya Testing',
+  formEmail: 'paul.kaaya@msqdx.com',
+  formPhone: '01133202626',
 };
